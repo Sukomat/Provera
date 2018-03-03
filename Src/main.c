@@ -48,13 +48,15 @@
 #define DIRECTION_THRESHOLD 40960
 #define PPR 60000
 #define BUFF_64 64
+#define BUFF_128 128
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
+int temp=0;
+int old_temp=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -64,6 +66,8 @@ void SystemClock_Config(void);
 /* Private function prototypes -----------------------------------------------*/
 int ticks_diff(int old, int new);
 void transmit_int(char letter, int number, int nlflag);
+int str2int(char *str);
+void transmit_string(char msg[], int nlflag);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -114,11 +118,13 @@ int main(void)
 	/*long count = 0;                                 // rotation counter
   long countInit;
   long tickNumber = 0;*/
-	//boolean run = false;                                     // motor moves
-	moveMotor(-16384);
+	//boolean run = false;
+
+	moveMotor(10000);
+			HAL_Delay(3000);
+			moveMotor(-10000);
 	while (1)
 	{
-
 
 		/* USER CODE END WHILE */
 
@@ -202,7 +208,7 @@ void moveMotor(long ref)
 {
 	/*countInit = count;    // abs(count)
 	 tickNumber = tick;*/
-	int temp=0;
+
 	int i=0;
 	float Kp=1;
 	double Ki=0;
@@ -210,7 +216,7 @@ void moveMotor(long ref)
 	int e=0;
 	int old_e=0;
 	int sum_e=0;
-	int old_temp=0;
+	HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_2);
 	do {
 		temp+=ticks_diff(old_temp,__HAL_TIM_GET_COUNTER(&htim1));
 		old_temp=__HAL_TIM_GET_COUNTER(&htim1);
@@ -234,6 +240,9 @@ void moveMotor(long ref)
 		old_e=e;
 		HAL_Delay(10);
 	 transmit_int('e',e,1);
+	 transmit_int('t',temp,1);
+
+
 	}while(fabs(e)>20);
 	HAL_TIM_PWM_Stop(&htim2,TIM_CHANNEL_2);
 }
@@ -270,7 +279,37 @@ void transmit_int(char letter, int number, int nlflag)
 	}
 	HAL_UART_Transmit(&huart2, (uint8_t *)buf, strlen((char *)buf), 100);
 }
+int str2int(char *str)
+{
+  int  result;
+  int  sing;
 
+  result = 0;
+  sing = 1;
+  while (('-' == (*str)) || ((*str) == '+'))
+    {
+      if (*str == '-')
+    	  sing = sing * -1;
+      str++;
+    }
+  while ((*str >= '0') && (*str <= '9'))
+    {
+      result = (result * 10) + ((*str) - '0');
+      str++;
+    }
+  return (result * sing);
+}
+
+void transmit_string(char msg[], int nlflag)
+{
+	uint8_t buf[BUFF_128]="";
+	if(nlflag){
+		snprintf((char*)buf, BUFF_128, "%s\n", msg);
+	}else{
+		snprintf((char*)buf, BUFF_128, "%s", msg);
+	}
+	HAL_UART_Transmit(&huart2, (uint8_t *)buf, strlen((char *)buf), 100);
+}
 /* USER CODE END 4 */
 
 /**
